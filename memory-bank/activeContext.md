@@ -1,22 +1,23 @@
 # Active Context
 
-**Current Work Focus:** Setting up the basic project structure and initial files.
+**Current Work Focus:** Implementing OpenAI model selection in the UI.
 
 **Recent Changes:**
 
-*   Created project directory and memory-bank directory.
-*   Created `projectbrief.md` and `productContext.md`.
+*   Added a new endpoint in the backend to call the OpenAI models API and return the list of models.
+*   Modified the frontend to call the new backend endpoint and populate a dropdown with the model names.
+*   Implemented the logic to use the selected model when making API calls.
 
 **Next Steps:**
 
-*   Create the remaining core memory bank files.
-*   Create the Go backend files.
-*   Create the Electron frontend files.
+*   Test the OpenAI model selection functionality.
+*   Update the remaining memory bank files.
+*   Use attempt_completion to present the result.
 
 **Active Decisions and Considerations:**
 
-*   How to best structure the Go backend for handling MCP server extensions.
-*   How to design the Electron frontend for a modular and extensible UI.
+*   How to handle errors when fetching the list of OpenAI models.
+*   How to persist the selected model across sessions.
 
 **Important Patterns and Preferences:**
 
