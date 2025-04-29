@@ -1,4 +1,4 @@
-const { app, BrowserWindow } = require('electron');
+const { app, BrowserWindow, session } = require('electron');
 
 app.disableHardwareAcceleration()
 
@@ -12,7 +12,29 @@ function createWindow() {
         }
     });
 
-    win.loadFile('index.html');
+    // Configure proxy settings
+    const ses = session.defaultSession;
+    const proxy = process.env.HTTPS_PROXY || process.env.HTTP_PROXY;
+    const noProxy = process.env.NO_PROXY;
+
+    let proxyRules = '';
+    if (proxy) {
+        proxyRules = proxy;
+        if (noProxy) {
+            proxyRules += `,bypass=${noProxy}`;
+        }
+    }
+
+    ses.setProxy({
+        proxyRules: proxyRules,
+        proxyBypassRules: noProxy // This might be redundant with bypass in proxyRules, but good to be explicit
+    }).then(() => {
+        console.log('Proxy settings applied:', proxyRules);
+        win.loadFile('index.html');
+    }).catch((err) => {
+        console.error('Error setting proxy:', err);
+        win.loadFile('index.html'); // Load even if proxy setting fails
+    });
 }
 
 app.whenReady().then(createWindow);

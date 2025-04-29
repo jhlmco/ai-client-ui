@@ -6,29 +6,68 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"net/url"
+	"os"
+	"strings"
+
+	"ai-client-ui/backend/models" // Import the new models package
 
 	"github.com/google/generative-ai-go/genai"
 	"github.com/sashabaranov/go-openai"
 	"google.golang.org/api/option"
 )
 
-// Server struct
-type Server struct {
-	// Add any server-related fields here
+// getProxyFromEnv checks for HTTPS_PROXY, HTTP_PROXY, and NO_PROXY environment variables
+// and returns a proxy function for http.Transport.
+func getProxyFromEnv() func(*http.Request) (*url.URL, error) {
+	proxyURL := os.Getenv("HTTPS_PROXY")
+	if proxyURL == "" {
+		proxyURL = os.Getenv("HTTP_PROXY")
+	}
+
+	noProxy := os.Getenv("NO_PROXY")
+	noProxyList := []string{}
+	if noProxy != "" {
+		noProxyList = strings.Split(noProxy, ",")
+	}
+
+	if proxyURL == "" {
+		return http.ProxyFromEnvironment // Fallback to default behavior if no proxy is set
+	}
+
+	fixedURL, err := url.Parse(proxyURL)
+	if err != nil {
+		log.Printf("Error parsing proxy URL %s: %v", proxyURL, err)
+		return http.ProxyFromEnvironment // Fallback on error
+	}
+
+	return func(req *http.Request) (*url.URL, error) {
+		host := req.URL.Hostname()
+		for _, bypass := range noProxyList {
+			if bypass == "*" || host == bypass {
+				return nil, nil // Bypass proxy for this host
+			}
+			// Basic wildcard matching for subdomains
+			if strings.HasPrefix(bypass, "*.") && strings.HasSuffix(host, bypass[1:]) {
+				return nil, nil // Bypass proxy for subdomains
+			}
+		}
+		return fixedURL, nil // Use the proxy
+	}
 }
 
 // NewServer creates a new server instance
-func NewServer() *Server {
-	return &Server{}
+func NewServer() *models.Server {
+	return &models.Server{}
 }
 
 // HandleRoot handles requests to the root path
-func (s *Server) HandleRoot(w http.ResponseWriter, r *http.Request) {
+func (s *models.Server) HandleRoot(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprint(w, "Hello from the Go backend!")
 }
 
 // HandleChat handles requests to the /chat path
-func (s *Server) HandleChat(w http.ResponseWriter, r *http.Request) {
+func (s *models.Server) HandleChat(w http.ResponseWriter, r *http.Request) {
 	// Set CORS headers to allow requests from the frontend
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
@@ -44,12 +83,7 @@ func (s *Server) HandleChat(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var requestBody struct {
-		Message string `json:"message"`
-		ApiKey  string `json:"apiKey"`
-		ApiType string `json:"apiType"` // Add ApiType field
-		Model   string `json:"model"`   // Add Model field
-	}
+	var requestBody models.ChatRequest
 
 	err := json.NewDecoder(r.Body).Decode(&requestBody)
 	if err != nil {
@@ -69,7 +103,12 @@ func (s *Server) HandleChat(w http.ResponseWriter, r *http.Request) {
 	switch requestBody.ApiType {
 	case "Gemini":
 		ctx := context.Background()
-		client, err = genai.NewClient(ctx, option.WithAPIKey(requestBody.ApiKey))
+		httpClient := &http.Client{
+			Transport: &http.Transport{
+				Proxy: getProxyFromEnv(),
+			},
+		}
+		client, err = genai.NewClient(ctx, option.WithAPIKey(requestBody.ApiKey), option.WithHTTPClient(httpClient))
 		if err != nil {
 			log.Println("Error creating Gemini client:", err)
 			http.Error(w, "Error creating Gemini client", http.StatusInternalServerError)
@@ -97,7 +136,13 @@ func (s *Server) HandleChat(w http.ResponseWriter, r *http.Request) {
 
 	case "OpenAI":
 		ctx := context.Background()
-		client := openai.NewClient(requestBody.ApiKey)
+		config := openai.DefaultConfig(requestBody.ApiKey)
+		config.HTTPClient = &http.Client{
+			Transport: &http.Transport{
+				Proxy: getProxyFromEnv(),
+			},
+		}
+		client := openai.NewClientWithConfig(config)
 
 		resp, err := client.CreateChatCompletion(
 			ctx,
@@ -129,9 +174,7 @@ func (s *Server) HandleChat(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	responseBody := struct {
-		Response string `json:"response"`
-	}{
+	responseBody := models.ChatResponse{
 		Response: responseMessage,
 	}
 
@@ -140,7 +183,7 @@ func (s *Server) HandleChat(w http.ResponseWriter, r *http.Request) {
 }
 
 // HandleModels handles requests to the /models path
-func (s *Server) HandleModels(w http.ResponseWriter, r *http.Request) {
+func (s *models.Server) HandleModels(w http.ResponseWriter, r *http.Request) {
 	// Set CORS headers to allow requests from the frontend
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
@@ -163,7 +206,13 @@ func (s *Server) HandleModels(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ctx := context.Background()
-	client := openai.NewClient(apiKey)
+	config := openai.DefaultConfig(apiKey)
+	config.HTTPClient = &http.Client{
+		Transport: &http.Transport{
+			Proxy: getProxyFromEnv(),
+		},
+	}
+	client := openai.NewClientWithConfig(config)
 
 	models, err := client.ListModels(ctx)
 	if err != nil {
@@ -177,14 +226,10 @@ func (s *Server) HandleModels(w http.ResponseWriter, r *http.Request) {
 		modelNames = append(modelNames, model.ID)
 	}
 
-	responseBody := struct {
-		Models []string `json:"models"`
-	}{
+	responseBody := models.ModelsResponse{
 		Models: modelNames,
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(responseBody)
 }
-
-// HandleModels handles requests to the /models path
