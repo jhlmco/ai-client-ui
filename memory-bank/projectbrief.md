@@ -1,11 +1,15 @@
 # Project Brief
 
-**Project Name:** AI Client UI
+This project aims to create a user interface for a Model Context Protocol (MCP) client. The UI should provide a simple and intuitive way for users to interact with the MCP server.
 
-**Project Goal:** To create a user interface for interacting with AI models, with the ability to extend functionality through MCP server extensions.
+## Goals
 
-**Core Requirements:**
+* Create a user-friendly interface for MCP clients
+* Allow users to easily interact with the MCP server
+* Provide a clear and concise way to display MCP data
 
-*   Go backend for handling AI model interactions and MCP server communication.
-*   Electron frontend for a cross-platform user interface.
-*   Modular design to allow for easy addition of new MCP server extensions.
+## Requirements
+
+* The UI should be built using web technologies (HTML, CSS, JavaScript)
+* The UI should be responsive and work on various devices
+* The UI should be able to display MCP data in a clear and concise manner
