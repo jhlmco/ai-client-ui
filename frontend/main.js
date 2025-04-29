@@ -1,6 +1,11 @@
-const { app, BrowserWindow, session } = require('electron');
+const { app, BrowserWindow, session, webContents } = require('electron');
 
 app.disableHardwareAcceleration()
+
+app.on('certificate-error', (event, webContents, url, error, certificate,callback) => {
+    event.preventDefault();
+    callback(true)
+});
 
 function createWindow() {
     const win = new BrowserWindow({
@@ -50,3 +55,5 @@ app.on('activate', () => {
         createWindow();
     }
 });
+
+// app.commandLine.appendSwitch('ignore-certificate-errors')

@@ -30,10 +30,10 @@ document.addEventListener('DOMContentLoaded', () => {
     console.log('modelBanner element:', modelBanner);
 
     let currentApi = 'Gemini'; // Default API
-    const apiConfigurations = {
-        'Gemini': { apiKey: '', hostname: 'localhost:8080', path: '/chat' }, // Default backend for Gemini
-        'OpenAI': { apiKey: '', hostname: '', path: '' }
-    };
+const apiConfigurations = {
+    'Gemini': { apiKey: '', hostname: 'localhost:8080', path: '/chat' }, // Default backend for Gemini
+    'OpenAI': { apiKey: '', hostname: window.openaiHostname, path: '' }
+};
 
     // Function to update the model banner
     function updateModelBanner() {
@@ -71,6 +71,10 @@ document.addEventListener('DOMContentLoaded', () => {
             console.log('Enter key pressed in message input');
             sendMessage();
         }
+    });
+    messageInput.addEventListener('input', () => {
+        console.log('Input changed');
+        reloadOpenAIModels();
     });
 
     function showApiConfigModal() {
@@ -130,8 +134,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Function to fetch OpenAI models from the backend
     function fetchOpenAIModels() {
         const config = apiConfigurations['OpenAI'];
-        // The URL for fetching models still points to the backend
-        const url = `http://${config.hostname}/models`;
+        const url = `${config.hostname}/models`;
 
         const requestBody = {
             apiKey: config.apiKey,
@@ -174,7 +177,15 @@ document.addEventListener('DOMContentLoaded', () => {
     openaiModelSelect.addEventListener('change', () => {
         currentOpenAIModel = openaiModelSelect.value;
         console.log('Selected OpenAI model:', currentOpenAIModel);
+        reloadOpenAIModels();
     });
+
+    // Function to reload OpenAI models
+    function reloadOpenAIModels() {
+        if (currentApi === 'OpenAI') {
+            fetchOpenAIModels();
+        }
+    }
 
     // Modify the sendMessage function to include the selected model
     function sendMessage() {
@@ -190,7 +201,7 @@ document.addEventListener('DOMContentLoaded', () => {
             console.log('Sending message:', message, 'model:', model);
 
             // Construct the URL based on saved configuration
-            const url = `http://${config.hostname}${config.path}`;
+const url = `http://${window.openaiHostname}${config.path}`;
 
             const requestBody = {
                 message: message,
