@@ -89,12 +89,29 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function saveApiConfiguration() {
-        apiConfigurations[currentApi] = {
-            apiKey: modalApiKeyInput.value.trim(),
-            hostname: modalHostnameInput.value.trim(),
-            path: modalOptionalPathInput.value.trim(),
-            model: currentOpenAIModel
-        };
+        const apiKey = modalApiKeyInput.value.trim();
+        const hostname = modalHostnameInput.value.trim(); // This will be the OpenAI API hostname for OpenAI
+        const path = modalOptionalPathInput.value.trim(); // This will be the OpenAI API path for OpenAI
+
+        if (currentApi === 'OpenAI') {
+            apiConfigurations[currentApi] = {
+                apiKey: apiKey,
+                openaiHostname: hostname, // Store OpenAI API hostname separately
+                openaiPath: path, // Store OpenAI API path separately
+                model: currentOpenAIModel,
+                // Keep the backend hostname and path for OpenAI calls to the backend
+                hostname: apiConfigurations[currentApi].hostname || 'localhost:8080', // Default backend hostname
+                path: apiConfigurations[currentApi].path || '/chat' // Default backend path
+            };
+        } else {
+             apiConfigurations[currentApi] = {
+                apiKey: apiKey,
+                hostname: hostname,
+                path: path,
+                model: currentOpenAIModel // This might not be relevant for Gemini, but keep for consistency
+            };
+        }
+
         console.log(`${currentApi} configuration saved:`, apiConfigurations[currentApi]);
         apiConfigModal.hide();
     }
@@ -113,9 +130,22 @@ document.addEventListener('DOMContentLoaded', () => {
     // Function to fetch OpenAI models from the backend
     function fetchOpenAIModels() {
         const config = apiConfigurations['OpenAI'];
-        const url = `http://${config.hostname}/models?apiKey=${config.apiKey}`;
+        // The URL for fetching models still points to the backend
+        const url = `http://${config.hostname}/models`;
 
-        fetch(url)
+        const requestBody = {
+            apiKey: config.apiKey,
+            openaiHostname: config.openaiHostname,
+            openaiPath: config.openaiPath
+        };
+
+        fetch(url, {
+            method: 'POST', // Change to POST to send request body
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(requestBody),
+        })
             .then(response => {
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
@@ -162,12 +192,24 @@ document.addEventListener('DOMContentLoaded', () => {
             // Construct the URL based on saved configuration
             const url = `http://${config.hostname}${config.path}`;
 
+            const requestBody = {
+                message: message,
+                apiKey: config.apiKey,
+                apiType: currentApi,
+                model: model
+            };
+
+            if (currentApi === 'OpenAI') {
+                requestBody.openaiHostname = config.openaiHostname;
+                requestBody.openaiPath = config.openaiPath;
+            }
+
             fetch(url, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ message: message, apiKey: config.apiKey, apiType: currentApi, model: model }),
+                body: JSON.stringify(requestBody),
             })
             .then(response => {
                 if (!response.ok) {

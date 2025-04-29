@@ -119,11 +119,22 @@ describe('Renderer', () => {
         expect(document.getElementById('apiConfigModalLabel').innerText).toBe('Configure OpenAI API');
     });
 
-    test('should save API configuration when save button is clicked', () => {
+    test('should save API configuration when save button is clicked for Gemini', () => {
         selectGeminiButton.click(); // Select Gemini to populate modal inputs
         modalApiKeyInput.value = 'gemini-key';
         modalHostnameInput.value = 'gemini-host';
         modalOptionalPathInput.value = '/gemini-path';
+        saveApiConfigButton.click();
+
+        // We can't directly access apiConfigurations, but we can check if the modal is hidden
+        expect(mockModal.hide).toHaveBeenCalled();
+    });
+
+    test('should save API configuration when save button is clicked for OpenAI', () => {
+        selectOpenAIButton.click(); // Select OpenAI to populate modal inputs
+        modalApiKeyInput.value = 'openai-key';
+        modalHostnameInput.value = 'openai-host'; // This is the OpenAI API hostname
+        modalOptionalPathInput.value = '/openai-path'; // This is the OpenAI API path
         saveApiConfigButton.click();
 
         // We can't directly access apiConfigurations, but we can check if the modal is hidden
@@ -157,8 +168,8 @@ describe('Renderer', () => {
     test('sendMessage should make a fetch call with correct parameters for OpenAI', async () => {
         selectOpenAIButton.click(); // Select OpenAI
         modalApiKeyInput.value = 'openai-key';
-        modalHostnameInput.value = 'openai-host';
-        modalOptionalPathInput.value = '/openai-path';
+        modalHostnameInput.value = 'api.openai.com'; // OpenAI API hostname
+        modalOptionalPathInput.value = '/v1'; // OpenAI API path
         saveApiConfigButton.click(); // Save config
 
         // Mock fetch for fetchOpenAIModels first
@@ -183,11 +194,18 @@ describe('Renderer', () => {
         await new Promise(process.nextTick);
 
         expect(fetch).toHaveBeenCalledWith(
-            'http://openai-host/openai-path',
+            'http://localhost:8080/chat', // Still calls the backend
             {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ message: 'Hello OpenAI', apiKey: 'openai-key', apiType: 'OpenAI', model: 'model-b' }),
+                body: JSON.stringify({
+                    message: 'Hello OpenAI',
+                    apiKey: 'openai-key',
+                    apiType: 'OpenAI',
+                    model: 'model-b',
+                    openaiHostname: 'api.openai.com', // Include OpenAI hostname
+                    openaiPath: '/v1' // Include OpenAI path
+                }),
             }
         );
     });
@@ -208,7 +226,18 @@ describe('Renderer', () => {
 
         await new Promise(process.nextTick); // Wait for the fetch promise to resolve
 
-        expect(fetch).toHaveBeenCalledWith('http://openai-host/models?apiKey=', expect.any(Object)); // Check URL and method
+        expect(fetch).toHaveBeenCalledWith(
+            'http://localhost:8080/models', // Still calls the backend
+            {
+                method: 'POST', // Now a POST request
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    apiKey: '', // Initial empty key
+                    openaiHostname: '', // Initial empty hostname
+                    openaiPath: '' // Initial empty path
+                }),
+            }
+        );
         expect(openaiModelSelect.options.length).toBe(mockModels.Models.length);
         expect(openaiModelSelect.options[0].text).toBe('model1');
         expect(openaiModelSelect.options[1].text).toBe('model2');
@@ -232,7 +261,7 @@ describe('Renderer', () => {
         expect(global.console.error).toHaveBeenCalledWith('Error fetching OpenAI models:', expect.any(Error));
     });
 
-    test('sendMessage should display error message on fetch error', async () => {
+    test('sendMessage should display error message on fetch error for Gemini', async () => {
         selectGeminiButton.click(); // Select Gemini
         modalApiKeyInput.value = 'gemini-key';
         modalHostnameInput.value = 'localhost:8080';
@@ -248,7 +277,7 @@ describe('Renderer', () => {
         expect(chatbox.innerHTML).toContain('<strong>System:</strong> Error: Network error');
     });
 
-    test('sendMessage should display error message on non-ok response', async () => {
+    test('sendMessage should display error message on non-ok response for Gemini', async () => {
         selectGeminiButton.click(); // Select Gemini
         modalApiKeyInput.value = 'gemini-key';
         modalHostnameInput.value = 'localhost:8080';
@@ -256,6 +285,72 @@ describe('Renderer', () => {
         saveApiConfigButton.click(); // Save config
 
         messageInput.value = 'Hello Gemini';
+        fetch.mockResolvedValueOnce({
+            ok: false,
+            status: 500,
+            statusText: 'Internal Server Error',
+        });
+        sendButton.click();
+
+        await new Promise(process.nextTick); // Wait for the fetch promise to resolve
+
+        expect(chatbox.innerHTML).toContain('<strong>System:</strong> Error: HTTP error! status: 500');
+    });
+
+    test('sendMessage should display error message on fetch error for OpenAI', async () => {
+        selectOpenAIButton.click(); // Select OpenAI
+        modalApiKeyInput.value = 'openai-key';
+        modalHostnameInput.value = 'api.openai.com'; // OpenAI API hostname
+        modalOptionalPathInput.value = '/v1'; // OpenAI API path
+        saveApiConfigButton.click(); // Save config
+
+        // Mock fetch for fetchOpenAIModels first
+        fetch.mockResolvedValueOnce({
+            ok: true,
+            json: () => Promise.resolve({ Models: ['model-a', 'model-b'] }),
+        });
+
+        // Re-open modal to trigger fetchOpenAIModels and select a model
+        selectOpenAIButton.click();
+        await new Promise(process.nextTick); // Wait for fetchOpenAIModels to complete
+
+        // Select a model in the mocked dropdown
+        openaiModelSelect.value = 'model-b';
+        openaiModelSelect.dispatchEvent(new Event('change'));
+
+
+        messageInput.value = 'Hello OpenAI';
+        fetch.mockRejectedValueOnce(new Error('Network error'));
+        sendButton.click();
+
+        await new Promise(process.nextTick); // Wait for the fetch promise to reject
+
+        expect(chatbox.innerHTML).toContain('<strong>System:</strong> Error: Network error');
+    });
+
+    test('sendMessage should display error message on non-ok response for OpenAI', async () => {
+        selectOpenAIButton.click(); // Select OpenAI
+        modalApiKeyInput.value = 'openai-key';
+        modalHostnameInput.value = 'api.openai.com'; // OpenAI API hostname
+        modalOptionalPathInput.value = '/v1'; // OpenAI API path
+        saveApiConfigButton.click(); // Save config
+
+        // Mock fetch for fetchOpenAIModels first
+        fetch.mockResolvedValueOnce({
+            ok: true,
+            json: () => Promise.resolve({ Models: ['model-a', 'model-b'] }),
+        });
+
+        // Re-open modal to trigger fetchOpenAIModels and select a model
+        selectOpenAIButton.click();
+        await new Promise(process.nextTick); // Wait for fetchOpenAIModels to complete
+
+        // Select a model in the mocked dropdown
+        openaiModelSelect.value = 'model-b';
+        openaiModelSelect.dispatchEvent(new Event('change'));
+
+
+        messageInput.value = 'Hello OpenAI';
         fetch.mockResolvedValueOnce({
             ok: false,
             status: 500,

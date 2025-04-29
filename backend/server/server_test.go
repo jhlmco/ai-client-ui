@@ -193,10 +193,12 @@ func TestHandleChat_MissingApiKey(t *testing.T) {
 func TestHandleChat_InvalidApiType(t *testing.T) {
 	server := NewServer()
 	requestBody := models.ChatRequest{
-		ApiKey:  "fake-api-key",
-		ApiType: "Invalid",
-		Message: "Hello",
-		Model:   "gemini-1.5-flash-latest",
+		ApiKey:         "fake-api-key",
+		ApiType:        "Invalid",
+		Message:        "Hello",
+		Model:          "gemini-1.5-flash-latest",
+		OpenAIHostname: "api.openai.com", // Add hostname for testing
+		OpenAIPath:     "/v1",            // Add path for testing
 	}
 	jsonBody, _ := json.Marshal(requestBody)
 	req, err := http.NewRequest("POST", "/chat", bytes.NewBuffer(jsonBody))
@@ -242,10 +244,16 @@ func TestHandleModels_InvalidMethod(t *testing.T) {
 
 func TestHandleModels_MissingApiKey(t *testing.T) {
 	server := NewServer()
-	req, err := http.NewRequest("GET", "/models", nil)
+	requestBody := models.ChatRequest{ // Use ChatRequest for models endpoint
+		OpenAIHostname: "api.openai.com", // Add hostname for testing
+		OpenAIPath:     "/v1",            // Add path for testing
+	}
+	jsonBody, _ := json.Marshal(requestBody)
+	req, err := http.NewRequest("POST", "/models", bytes.NewBuffer(jsonBody)) // Change to POST
 	if err != nil {
 		t.Fatal(err)
 	}
+	req.Header.Set("Content-Type", "application/json")
 
 	rr := httptest.NewRecorder()
 	handler := http.HandlerFunc(server.HandleModels)

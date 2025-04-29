@@ -137,6 +137,13 @@ func (s *models.Server) HandleChat(w http.ResponseWriter, r *http.Request) {
 	case "OpenAI":
 		ctx := context.Background()
 		config := openai.DefaultConfig(requestBody.ApiKey)
+
+		// Configure the base URL if OpenAIHostname and OpenAIPath are provided
+		if requestBody.OpenAIHostname != "" {
+			baseURL := fmt.Sprintf("https://%s%s", requestBody.OpenAIHostname, requestBody.OpenAIPath)
+			config.BaseURL = baseURL
+		}
+
 		config.HTTPClient = &http.Client{
 			Transport: &http.Transport{
 				Proxy: getProxyFromEnv(),
@@ -194,19 +201,33 @@ func (s *models.Server) HandleModels(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if r.Method != "GET" {
+	if r.Method != "POST" { // Change to POST
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
-	apiKey := r.URL.Query().Get("apiKey")
-	if apiKey == "" {
+	var requestBody models.ChatRequest // Use ChatRequest to get API key, hostname, and path
+
+	err := json.NewDecoder(r.Body).Decode(&requestBody)
+	if err != nil {
+		http.Error(w, "Error decoding request body", http.StatusBadRequest)
+		return
+	}
+
+	if requestBody.ApiKey == "" {
 		http.Error(w, "API key is missing", http.StatusBadRequest)
 		return
 	}
 
 	ctx := context.Background()
-	config := openai.DefaultConfig(apiKey)
+	config := openai.DefaultConfig(requestBody.ApiKey)
+
+	// Configure the base URL if OpenAIHostname and OpenAIPath are provided
+	if requestBody.OpenAIHostname != "" {
+		baseURL := fmt.Sprintf("https://%s%s", requestBody.OpenAIHostname, requestBody.OpenAIPath)
+		config.BaseURL = baseURL
+	}
+
 	config.HTTPClient = &http.Client{
 		Transport: &http.Transport{
 			Proxy: getProxyFromEnv(),
@@ -214,7 +235,7 @@ func (s *models.Server) HandleModels(w http.ResponseWriter, r *http.Request) {
 	}
 	client := openai.NewClientWithConfig(config)
 
-	models, err := client.ListModels(ctx)
+	modelsList, err := client.ListModels(ctx) // Renamed variable to avoid conflict
 	if err != nil {
 		log.Println("Error listing OpenAI models:", err)
 		http.Error(w, "Error listing OpenAI models", http.StatusInternalServerError)
@@ -222,7 +243,7 @@ func (s *models.Server) HandleModels(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var modelNames []string
-	for _, model := range models.Models {
+	for _, model := range modelsList.Models {
 		modelNames = append(modelNames, model.ID)
 	}
 

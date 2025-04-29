@@ -7,10 +7,12 @@ type Server struct {
 
 // ChatRequest represents the request body for the /chat endpoint.
 type ChatRequest struct {
-	Message string `json:"message"`
-	ApiKey  string `json:"apiKey"`
-	ApiType string `json:"apiType"` // Add ApiType field
-	Model   string `json:"model"`   // Add Model field
+	Message        string `json:"message"`
+	ApiKey         string `json:"apiKey"`
+	ApiType        string `json:"apiType"`        // Add ApiType field
+	Model          string `json:"model"`          // Add Model field
+	OpenAIHostname string `json:"openaiHostname"` // Add OpenAIHostname field
+	OpenAIPath     string `json:"openaiPath"`     // Add OpenAIPath field
 }
 
 // ChatResponse represents the response body for the /chat endpoint.
