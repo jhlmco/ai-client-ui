@@ -26,6 +26,8 @@ document.addEventListener('DOMContentLoaded', () => {
     console.log('modalOptionalPathInput element:', modalOptionalPathInput);
     const saveApiConfigButton = document.getElementById('saveApiConfig');
     console.log('saveApiConfigButton element:', saveApiConfigButton);
+    const modelBanner = document.getElementById('modelBanner');
+    console.log('modelBanner element:', modelBanner);
 
     let currentApi = 'Gemini'; // Default API
     const apiConfigurations = {
@@ -33,16 +35,23 @@ document.addEventListener('DOMContentLoaded', () => {
         'OpenAI': { apiKey: '', hostname: '', path: '' }
     };
 
+    // Function to update the model banner
+    function updateModelBanner() {
+        modelBanner.innerText = `Selected Model: ${currentApi}`;
+    }
+
     // Event listeners for API selection buttons
     selectGeminiButton.addEventListener('click', () => {
         console.log('Gemini button clicked');
         currentApi = 'Gemini';
+        updateModelBanner();
         showApiConfigModal();
     });
 
     selectOpenAIButton.addEventListener('click', () => {
         console.log('OpenAI button clicked');
         currentApi = 'OpenAI';
+        updateModelBanner();
         showApiConfigModal();
     });
 
@@ -71,6 +80,11 @@ document.addEventListener('DOMContentLoaded', () => {
         modalHostnameInput.value = config.hostname;
         modalOptionalPathInput.value = config.path;
         document.getElementById('apiConfigModalLabel').innerText = `Configure ${currentApi} API`;
+
+        if (currentApi === 'OpenAI') {
+            fetchOpenAIModels();
+        }
+
         apiConfigModal.show();
     }
 
@@ -78,19 +92,72 @@ document.addEventListener('DOMContentLoaded', () => {
         apiConfigurations[currentApi] = {
             apiKey: modalApiKeyInput.value.trim(),
             hostname: modalHostnameInput.value.trim(),
-            path: modalOptionalPathInput.value.trim()
+            path: modalOptionalPathInput.value.trim(),
+            model: currentOpenAIModel
         };
         console.log(`${currentApi} configuration saved:`, apiConfigurations[currentApi]);
         apiConfigModal.hide();
     }
 
+
+    function displayMessage(sender, message) {
+        const messageElement = document.createElement('div');
+        messageElement.innerHTML = `<strong>${sender}:</strong> ${message}`;
+        chatbox.appendChild(messageElement);
+        chatbox.scrollTop = chatbox.scrollHeight; // Auto-scroll to the latest message
+    }
+
+    const openaiModelSelect = document.getElementById('openaiModelSelect');
+    let currentOpenAIModel = '';
+
+    // Function to fetch OpenAI models from the backend
+    function fetchOpenAIModels() {
+        const config = apiConfigurations['OpenAI'];
+        const url = `http://${config.hostname}/models?apiKey=${config.apiKey}`;
+
+        fetch(url)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('OpenAI models:', data);
+                // Populate the dropdown with model names
+                openaiModelSelect.innerHTML = ''; // Clear existing options
+                data.Models.forEach(model => {
+                    const option = document.createElement('option');
+                    option.value = model;
+                    option.text = model;
+                    openaiModelSelect.appendChild(option);
+                });
+                currentOpenAIModel = data.Models[0]; // Select the first model by default
+            })
+            .catch(error => {
+                console.error('Error fetching OpenAI models:', error);
+                openaiModelSelect.innerHTML = '<option>Error loading models</option>';
+            });
+    }
+
+    // Event listener for OpenAI model selection
+    openaiModelSelect.addEventListener('change', () => {
+        currentOpenAIModel = openaiModelSelect.value;
+        console.log('Selected OpenAI model:', currentOpenAIModel);
+    });
+
+    // Modify the sendMessage function to include the selected model
     function sendMessage() {
         const message = messageInput.value.trim();
         const config = apiConfigurations[currentApi];
+        let model = null;
+        if (currentApi === 'OpenAI') {
+            model = currentOpenAIModel;
+        }
 
         if (message) {
             displayMessage('You', message); // Display user message
-            console.log('Sending message:', message);
+            console.log('Sending message:', message, 'model:', model);
 
             // Construct the URL based on saved configuration
             const url = `http://${config.hostname}${config.path}`;
@@ -100,7 +167,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ message: message, apiKey: config.apiKey, apiType: currentApi }),
+                body: JSON.stringify({ message: message, apiKey: config.apiKey, apiType: currentApi, model: model }),
             })
             .then(response => {
                 if (!response.ok) {
@@ -120,12 +187,5 @@ document.addEventListener('DOMContentLoaded', () => {
 
             messageInput.value = ''; // Clear input field
         }
-    }
-
-    function displayMessage(sender, message) {
-        const messageElement = document.createElement('div');
-        messageElement.innerHTML = `<strong>${sender}:</strong> ${message}`;
-        chatbox.appendChild(messageElement);
-        chatbox.scrollTop = chatbox.scrollHeight; // Auto-scroll to the latest message
     }
 });

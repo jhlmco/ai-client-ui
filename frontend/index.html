@@ -28,12 +28,11 @@
             <!-- Chat Interface Column -->
             <div class="col-md-9">
                 <h1 class="mb-3">AI Client Chat</h1>
+                <div id="modelBanner" class="alert alert-info" role="alert">
+                    Selected Model: Gemini
+                </div>
                 <div id="chatbox" class="border p-3 mb-3" style="height: 400px; overflow-y: scroll;">
                     <!-- Chat messages will appear here -->
-                </div>
-                <div class="mb-3">
-                    <label for="apiKeyInput" class="form-label">Gemini API Key:</label>
-                    <input type="password" id="apiKeyInput" class="form-control" placeholder="Enter your Gemini API key">
                 </div>
                 <div class="input-group mb-3">
                     <input type="text" id="messageInput" class="form-control" placeholder="Enter message...">
@@ -65,6 +64,12 @@
                     <div class="mb-3">
                         <label for="modalOptionalPathInput" class="form-label">Optional Path:</label>
                         <input type="text" class="form-control" id="modalOptionalPathInput" placeholder="Enter optional path">
+                    </div>
+                    <div class="mb-3">
+                        <label for="openaiModelSelect" class="form-label">Select OpenAI Model:</label>
+                        <select class="form-select" id="openaiModelSelect">
+                            <option selected>Loading models...</option>
+                        </select>
                     </div>
                 </div>
                 <div class="modal-footer">

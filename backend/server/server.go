@@ -48,6 +48,7 @@ func (s *Server) HandleChat(w http.ResponseWriter, r *http.Request) {
 		Message string `json:"message"`
 		ApiKey  string `json:"apiKey"`
 		ApiType string `json:"apiType"` // Add ApiType field
+		Model   string `json:"model"`   // Add Model field
 	}
 
 	err := json.NewDecoder(r.Body).Decode(&requestBody)
@@ -101,7 +102,7 @@ func (s *Server) HandleChat(w http.ResponseWriter, r *http.Request) {
 		resp, err := client.CreateChatCompletion(
 			ctx,
 			openai.ChatCompletionRequest{
-				Model: openai.GPT3Dot5Turbo, // Or another suitable OpenAI model
+				Model: requestBody.Model, // Or another suitable OpenAI model
 				Messages: []openai.ChatCompletionMessage{
 					{
 						Role:    openai.ChatMessageRoleUser,
@@ -137,3 +138,53 @@ func (s *Server) HandleChat(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(responseBody)
 }
+
+// HandleModels handles requests to the /models path
+func (s *Server) HandleModels(w http.ResponseWriter, r *http.Request) {
+	// Set CORS headers to allow requests from the frontend
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+
+	if r.Method == "OPTIONS" {
+		// Handle preflight requests
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+
+	if r.Method != "GET" {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	apiKey := r.URL.Query().Get("apiKey")
+	if apiKey == "" {
+		http.Error(w, "API key is missing", http.StatusBadRequest)
+		return
+	}
+
+	ctx := context.Background()
+	client := openai.NewClient(apiKey)
+
+	models, err := client.ListModels(ctx)
+	if err != nil {
+		log.Println("Error listing OpenAI models:", err)
+		http.Error(w, "Error listing OpenAI models", http.StatusInternalServerError)
+		return
+	}
+
+	var modelNames []string
+	for _, model := range models.Models {
+		modelNames = append(modelNames, model.ID)
+	}
+
+	responseBody := struct {
+		Models []string `json:"models"`
+	}{
+		Models: modelNames,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(responseBody)
+}
+
+// HandleModels handles requests to the /models path

@@ -17,6 +17,7 @@ func main() {
 	// Define the handler for the root path
 	http.HandleFunc("/", s.HandleRoot)
 	http.HandleFunc("/chat", s.HandleChat)
+	http.HandleFunc("/models", s.HandleModels)
 
 	// Start the server
 	log.Fatal(http.ListenAndServe(":8080", nil))
