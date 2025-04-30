@@ -5,53 +5,90 @@
     <title>AI Client UI</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
     <style>
-        .collapse {
-            height: 0;
-            overflow: hidden;
-            transition: height 0.3s ease-out;
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+            height: 100vh; /* Set body height to viewport height */
+            margin: 0;
+            display: flex;
+            flex-direction: column;
         }
-        .collapse.show {
-            height: auto;
+        #optionsPane {
+            background-color: #e0e0e0;
+            padding: 20px;
+            border: 1px solid #ccc;
+            flex-basis: 25%; /* Maximum of 25% width */
+            max-width: 25%; /* Maximum of 25% width */
+        }
+        #chatbox {
+            background-color: #fff;
+            padding: 20px;
+            border: 1px solid #ddd;
+            flex-grow: 1; /* Take up remaining space */
+            overflow-y: scroll;
+            height: 100%; /* Take up remaining height */
         }
     </style>
 </head>
 <body>
-    <div class="container-fluid mt-4">
-        <div class="row flex-nowrap">
-            <!-- Collapsible Pane Column -->
-            <div class="col-md-3 collapse-horizontal" id="optionsPane">
-                <h2>Options</h2>
-                <button class="btn btn-primary mb-3" type="button" data-bs-toggle="collapse" data-bs-target="#optionsPane" aria-expanded="false" aria-controls="optionsPane">
-                    Toggle Options
-                </button>
-                <div class="card card-body">
-                    <h5>Select API:</h5>
-                        <div class="list-group">
-                            <button type="button" class="list-group-item list-group-item-action" id="selectGemini">Gemini</button>
-                            <button type="button" class="list-group-item list-group-item-action" id="selectOpenAI">OpenAI</button>
-                        </div>
+    <div class="container d-flex flex-column h-100">
+        <h1 class="mb-3 text-center">AI Client Chat</h1>
+        <div id="modelBanner" class="alert alert-info" role="alert">
+            Selected Model: Gemini
+        </div>
+        <div id="chatbox" class="border p-3 mb-3 flex-grow-1">
+            <!-- Chat messages will appear here -->
+        </div>
+        <div class="mb-3">
+            <label for="openaiModelSelect" class="form-label">Select OpenAI Model:</label>
+            <select class="form-select" id="openaiModelSelect">
+                <option selected>Loading models...</option>
+            </select>
+        </div>
+        <div class="input-group mb-3">
+            <input type="text" id="messageInput" class="form-control" placeholder="Enter message...">
+            <button class="btn btn-primary" type="button" id="sendButton">Send</button>
+        </div>
+    </div>
+    <div id="optionsPane" class="position-fixed top-0 right-0 mt-5 me-5">
+        <h2>Options</h2>
+        <button class="btn btn-primary mb-3" type="button" data-bs-toggle="modal" data-bs-target="#apiConfigModal">
+            Configure API
+        </button>
+        <div class="card card-body">
+            <h5>Select API:</h5>
+            <div class="list-group">
+                <button type="button" class="list-group-item list-group-item-action" id="selectGemini">Gemini</button>
+                <button type="button" class="list-group-item list-group-item-action" id="selectOpenAI">OpenAI</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- API Configuration Modal -->
+    <div class="modal fade" id="apiConfigModal" tabindex="-1" aria-labelledby="apiConfigModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="apiConfigModalLabel">Configure API</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="modalApiKeyInput" class="form-label">API Key:</label>
+                        <input type="password" class="form-control" id="modalApiKeyInput" placeholder="Enter API key">
+                    </div>
+                    <div class="mb-3">
+                        <label for="modalHostnameInput" class="form-label">Hostname:</label>
+                        <input type="text" class="form-control" id="modalHostnameInput" placeholder="Enter hostname">
+                    </div>
+                    <div class="mb-3">
+                        <label for="modalOptionalPathInput" class="form-label">Optional Path:</label>
+                        <input type="text" class="form-control" id="modalOptionalPathInput" placeholder="Enter optional path">
                     </div>
                 </div>
-            </div>
-
-            <!-- Chat Interface Column -->
-            <div class="col-md-9">
-                <h1 class="mb-3">AI Client Chat</h1>
-                <div id="modelBanner" class="alert alert-info" role="alert">
-                    Selected Model: Gemini
-                </div>
-<div id="chatbox" class="border p-3 mb-3" style="height: 400px; overflow-y: scroll;">
-                    <!-- Chat messages will appear here -->
-                </div>
-                <div class="mb-3">
-                    <label for="openaiModelSelect" class="form-label">Select OpenAI Model:</label>
-                    <select class="form-select" id="openaiModelSelect">
-                        <option selected>Loading models...</option>
-                    </select>
-                </div>
-                <div class="input-group mb-3">
-                    <input type="text" id="messageInput" class="form-control" placeholder="Enter message...">
-                    <button class="btn btn-primary" type="button" id="sendButton">Send</button>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" id="saveApiConfig">Save Configuration</button>
                 </div>
             </div>
         </div>

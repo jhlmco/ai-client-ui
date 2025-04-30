@@ -10,8 +10,6 @@ import (
 	"os"
 	"strings"
 
-	"gopkg.in/yaml.v3"
-
 	"github.com/google/generative-ai-go/genai"
 	"github.com/sashabaranov/go-openai"
 	"google.golang.org/api/option"
@@ -20,14 +18,9 @@ import (
 // getProxyFromEnv checks for HTTPS_PROXY, HTTP_PROXY, and NO_PROXY environment variables
 // and returns a proxy function for http.Transport.
 func readConfig() (Config, error) {
-	var config Config
-	yamlConfig, err := os.ReadFile("../../config.yaml")
-	if err != nil {
-		return Config{}, err
-	}
-	err = yaml.Unmarshal(yamlConfig, &config)
-	if err != nil {
-		return Config{}, err
+	config := Config{
+		OpenAIHostname: os.Getenv("OPENAI_HOSTNAME"),
+		OpenAIPath:     os.Getenv("OPENAI_PATH"),
 	}
 	return config, nil
 }

@@ -34,11 +34,9 @@ const yaml = require('js-yaml');
 const fs = require('fs');
 const path = require('path');
 
-const configFile = 'config.json';
-
 try {
-    const configFileContent = fs.readFileSync(configFile, 'utf8');
-    var config = JSON.parse(configFileContent);
+    const configFileContent = fs.readFileSync('config.yaml', 'utf8');
+    var config = yaml.load(configFileContent);
 } catch (error) {
     console.log(error);
     var config = {

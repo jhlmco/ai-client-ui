@@ -1,18 +1,11 @@
 # Active Context
 
-**Current Work Focus:** Splitting structs and models from `backend/server/server.go` into a separate file.
+**Current Work Focus:** Update Memory Bank files to reflect recent changes.
 
 **Recent Changes:**
 
-*   Added a new endpoint in the backend to call the OpenAI models API and return the list of models.
-*   Modified the frontend to call the new backend endpoint and populate a dropdown with the model names.
-*   Implemented the logic to use the selected model when making API calls.
-*   Analyzed backend and frontend code and determined that existing implementations should respect `https_proxy` and `no_proxy` environment variables.
-*   Modified backend code (`backend/server/server.go`) to explicitly configure HTTP clients to use proxy settings from environment variables, including logic to respect `no_proxy`.
-*   Modified frontend code (`frontend/main.js`) to explicitly configure the Electron session to use proxy settings from environment variables.
-*   Created `backend/models/models.go` and moved struct definitions from `backend/server/server.go`.
-*   Updated `backend/server/server.go` to use the structs from the `models` package.
-*   Ran `go mod tidy` in the `backend` directory to update dependencies.
+*   Removed use of config.yaml file.
+*   Updated backend/server/server.go to read config settings from environment variables.
 
 **Next Steps:**
 

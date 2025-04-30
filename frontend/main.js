@@ -14,7 +14,10 @@ function createWindow() {
         webPreferences: {
             nodeIntegration: true,
             contextIsolation: false
-        }
+        },
+        minWidth: 400,
+        minHeight: 300,
+        resizable: true
     });
 
     // Configure proxy settings

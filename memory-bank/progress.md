@@ -7,7 +7,9 @@
 *   Go backend implementation and environment configuration.
 *   OpenAI model selection functionality.
 *   Explicit proxy configuration for frontend and backend based on `https_proxy` and `no_proxy` environment variables, including `no_proxy` handling for the backend.
-*   Structs and models have been successfully moved from `backend/server/server.go` to `backend/models/models.go`.
+*   Structs and models have been successfully moved to a separate file.
+*   Removed use of config.yaml file.
+*   Updated backend/server/server.go to read config settings from environment variables.
 
 **What's Left to Build:**
 
