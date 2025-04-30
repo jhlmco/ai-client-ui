@@ -75,11 +75,26 @@ func NewServer() *Server {
 }
 
 // HandleRoot handles requests to the root path
+// @Summary Root endpoint
+// @Description Returns a greeting message
+// @Tags root
+// @Success 200 {string} string "Hello from the Go backend!"
+// @Router / [get]
 func (s *Server) HandleRoot(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprint(w, "Hello from the Go backend!")
 }
 
 // HandleChat handles requests to the /chat path
+// @Summary Chat endpoint
+// @Description Handles chat requests and returns a response
+// @Tags chat
+// @Accept  json
+// @Produce  json
+// @Param   request body ChatRequest true "Chat request body"
+// @Success 200 {object} ChatResponse "Chat response"
+// @Failure 400 {string} string "Error decoding request body, API key is missing, Invalid API type specified"
+// @Failure 500 {string} string "Error creating Gemini client, Error generating content, Error creating OpenAI chat completion"
+// @Router /chat [post]
 func (s Server) HandleChat(w http.ResponseWriter, r *http.Request) {
 	var requestBody ChatRequest
 	// Set CORS headers to allow requests from the frontend
@@ -207,16 +222,27 @@ type ChatResponse struct {
 }
 
 // ChatRequest represents the request body for the /chat endpoint.
+// @Description Chat request body
 type ChatRequest struct {
-	Message        string `json:"message"`
-	ApiKey         string `json:"apiKey"`
-	ApiType        string `json:"apiType"`        // Add ApiType field
-	Model          string `json:"model"`          // Add Model field
-	OpenAIHostname string `json:"openaiHostname"` // Add OpenAIHostname field
-	OpenAIPath     string `json:"openaiPath"`     // Add OpenAIPath field
+	Message        string `json:"message" example:"Hello, world!" description:"The message to send to the chat API"`
+	ApiKey         string `json:"apiKey" example:"sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" description:"The API key to use for the chat API"`
+	ApiType        string `json:"apiType" example:"OpenAI" description:"The type of API to use (OpenAI or Gemini)"`      // Add ApiType field
+	Model          string `json:"model" example:"gpt-3.5-turbo" description:"The model to use for the OpenAI API"`       // Add Model field
+	OpenAIHostname string `json:"openaiHostname" example:"api.openai.com" description:"The hostname for the OpenAI API"` // Add OpenAIHostname field
+	OpenAIPath     string `json:"openaiPath" example:"/v1" description:"The path for the OpenAI API"`                    // Add OpenAIPath field
 }
 
 // HandleModels handles requests to the /models path
+// @Summary Models endpoint
+// @Description Handles requests to the /models path and returns a list of available models
+// @Tags models
+// @Accept  json
+// @Produce  json
+// @Param   request body ChatRequest true "Chat request body"
+// @Success 200 {object} ModelsResponse "Models response"
+// @Failure 400 {string} string "Error decoding request body, API key is missing"
+// @Failure 500 {string} string "Error listing OpenAI models"
+// @Router /models [post]
 func (s *Server) HandleModels(w http.ResponseWriter, r *http.Request) {
 	// Set CORS headers to allow requests from the frontend
 	w.Header().Set("Access-Control-Allow-Origin", "*")
@@ -264,7 +290,7 @@ func (s *Server) HandleModels(w http.ResponseWriter, r *http.Request) {
 
 	modelsList, errList := client.ListModels(ctx) // Renamed variable to avoid conflict
 	if errList != nil {
-	log.Println("Error listing OpenAI models:", errList)
+		log.Println("Error listing OpenAI models:", errList)
 		http.Error(w, "Error listing OpenAI models", http.StatusInternalServerError)
 		return
 	}

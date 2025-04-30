@@ -1,0 +1,172 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "contact": {}
+    },
+    "paths": {
+        "/": {
+            "get": {
+                "description": "Returns a greeting message",
+                "tags": [
+                    "root"
+                ],
+                "summary": "Root endpoint",
+                "responses": {
+                    "200": {
+                        "description": "Hello from the Go backend!",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/chat": {
+            "post": {
+                "description": "Handles chat requests and returns a response",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "chat"
+                ],
+                "summary": "Chat endpoint",
+                "parameters": [
+                    {
+                        "description": "Chat request body",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/server.ChatRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Chat response",
+                        "schema": {
+                            "$ref": "#/definitions/server.ChatResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Error decoding request body, API key is missing, Invalid API type specified",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Error creating Gemini client, Error generating content, Error creating OpenAI chat completion",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/models": {
+            "post": {
+                "description": "Handles requests to the /models path and returns a list of available models",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "models"
+                ],
+                "summary": "Models endpoint",
+                "parameters": [
+                    {
+                        "description": "Chat request body",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/server.ChatRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Models response",
+                        "schema": {
+                            "$ref": "#/definitions/server.ModelsResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Error decoding request body, API key is missing",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Error listing OpenAI models",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "server.ChatRequest": {
+            "description": "Chat request body",
+            "type": "object",
+            "properties": {
+                "apiKey": {
+                    "type": "string",
+                    "example": "sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                },
+                "apiType": {
+                    "description": "Add ApiType field",
+                    "type": "string",
+                    "example": "OpenAI"
+                },
+                "message": {
+                    "type": "string",
+                    "example": "Hello, world!"
+                },
+                "model": {
+                    "description": "Add Model field",
+                    "type": "string",
+                    "example": "gpt-3.5-turbo"
+                },
+                "openaiHostname": {
+                    "description": "Add OpenAIHostname field",
+                    "type": "string",
+                    "example": "api.openai.com"
+                },
+                "openaiPath": {
+                    "description": "Add OpenAIPath field",
+                    "type": "string",
+                    "example": "/v1"
+                }
+            }
+        },
+        "server.ChatResponse": {
+            "type": "object",
+            "properties": {
+                "response": {
+                    "type": "string"
+                }
+            }
+        },
+        "server.ModelsResponse": {
+            "type": "object",
+            "properties": {
+                "models": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        }
+    }
+}

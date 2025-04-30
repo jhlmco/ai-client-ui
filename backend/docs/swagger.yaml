@@ -1,0 +1,117 @@
+definitions:
+  server.ChatRequest:
+    description: Chat request body
+    properties:
+      apiKey:
+        example: sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+        type: string
+      apiType:
+        description: Add ApiType field
+        example: OpenAI
+        type: string
+      message:
+        example: Hello, world!
+        type: string
+      model:
+        description: Add Model field
+        example: gpt-3.5-turbo
+        type: string
+      openaiHostname:
+        description: Add OpenAIHostname field
+        example: api.openai.com
+        type: string
+      openaiPath:
+        description: Add OpenAIPath field
+        example: /v1
+        type: string
+    type: object
+  server.ChatResponse:
+    properties:
+      response:
+        type: string
+    type: object
+  server.ModelsResponse:
+    properties:
+      models:
+        items:
+          type: string
+        type: array
+    type: object
+info:
+  contact: {}
+paths:
+  /:
+    get:
+      description: Returns a greeting message
+      responses:
+        "200":
+          description: Hello from the Go backend!
+          schema:
+            type: string
+      summary: Root endpoint
+      tags:
+      - root
+  /chat:
+    post:
+      consumes:
+      - application/json
+      description: Handles chat requests and returns a response
+      parameters:
+      - description: Chat request body
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/server.ChatRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Chat response
+          schema:
+            $ref: '#/definitions/server.ChatResponse'
+        "400":
+          description: Error decoding request body, API key is missing, Invalid API
+            type specified
+          schema:
+            type: string
+        "500":
+          description: Error creating Gemini client, Error generating content, Error
+            creating OpenAI chat completion
+          schema:
+            type: string
+      summary: Chat endpoint
+      tags:
+      - chat
+  /models:
+    post:
+      consumes:
+      - application/json
+      description: Handles requests to the /models path and returns a list of available
+        models
+      parameters:
+      - description: Chat request body
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/server.ChatRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Models response
+          schema:
+            $ref: '#/definitions/server.ModelsResponse'
+        "400":
+          description: Error decoding request body, API key is missing
+          schema:
+            type: string
+        "500":
+          description: Error listing OpenAI models
+          schema:
+            type: string
+      summary: Models endpoint
+      tags:
+      - models
+swagger: "2.0"
