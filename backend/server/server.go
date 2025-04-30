@@ -10,7 +10,7 @@ import (
 	"os"
 	"strings"
 
-	"ai-client-ui/backend/models" // Import the new models package
+	"gopkg.in/yaml.v3"
 
 	"github.com/google/generative-ai-go/genai"
 	"github.com/sashabaranov/go-openai"
@@ -19,6 +19,24 @@ import (
 
 // getProxyFromEnv checks for HTTPS_PROXY, HTTP_PROXY, and NO_PROXY environment variables
 // and returns a proxy function for http.Transport.
+func readConfig() (Config, error) {
+	var config Config
+	yamlConfig, err := os.ReadFile("../../config.yaml")
+	if err != nil {
+		return Config{}, err
+	}
+	err = yaml.Unmarshal(yamlConfig, &config)
+	if err != nil {
+		return Config{}, err
+	}
+	return config, nil
+}
+
+type Config struct {
+	OpenAIHostname string `yaml:"openaiHostname"`
+	OpenAIPath     string `yaml:"openaiPath"`
+}
+
 func getProxyFromEnv() func(*http.Request) (*url.URL, error) {
 	proxyURL := os.Getenv("HTTPS_PROXY")
 	if proxyURL == "" {
@@ -57,17 +75,20 @@ func getProxyFromEnv() func(*http.Request) (*url.URL, error) {
 }
 
 // NewServer creates a new server instance
-func NewServer() *models.Server {
-	return &models.Server{}
+type Server struct{}
+
+func NewServer() *Server {
+	return &Server{}
 }
 
 // HandleRoot handles requests to the root path
-func (s *models.Server) HandleRoot(w http.ResponseWriter, r *http.Request) {
+func (s *Server) HandleRoot(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprint(w, "Hello from the Go backend!")
 }
 
 // HandleChat handles requests to the /chat path
-func (s *models.Server) HandleChat(w http.ResponseWriter, r *http.Request) {
+func (s Server) HandleChat(w http.ResponseWriter, r *http.Request) {
+	var requestBody ChatRequest
 	// Set CORS headers to allow requests from the frontend
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
@@ -83,8 +104,6 @@ func (s *models.Server) HandleChat(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var requestBody models.ChatRequest
-
 	err := json.NewDecoder(r.Body).Decode(&requestBody)
 	if err != nil {
 		http.Error(w, "Error decoding request body", http.StatusBadRequest)
@@ -97,8 +116,8 @@ func (s *models.Server) HandleChat(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var responseMessage string
-	var client *genai.Client                // Declare client outside the switch
-	var resp *genai.GenerateContentResponse // Declare resp outside the switch
+	var client *genai.Client
+	var resp *genai.GenerateContentResponse
 
 	switch requestBody.ApiType {
 	case "Gemini":
@@ -151,10 +170,11 @@ func (s *models.Server) HandleChat(w http.ResponseWriter, r *http.Request) {
 		}
 		client := openai.NewClientWithConfig(config)
 
-		resp, err := client.CreateChatCompletion(
+		var completionResponse openai.ChatCompletionResponse
+		completionResponse, err = client.CreateChatCompletion(
 			ctx,
 			openai.ChatCompletionRequest{
-				Model: requestBody.Model, // Or another suitable OpenAI model
+				Model: requestBody.Model,
 				Messages: []openai.ChatCompletionMessage{
 					{
 						Role:    openai.ChatMessageRoleUser,
@@ -170,8 +190,8 @@ func (s *models.Server) HandleChat(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		if len(resp.Choices) > 0 {
-			responseMessage = resp.Choices[0].Message.Content
+		if len(completionResponse.Choices) > 0 {
+			responseMessage = completionResponse.Choices[0].Message.Content
 		} else {
 			responseMessage = "No response from OpenAI API."
 		}
@@ -181,7 +201,7 @@ func (s *models.Server) HandleChat(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	responseBody := models.ChatResponse{
+	responseBody := ChatResponse{
 		Response: responseMessage,
 	}
 
@@ -189,8 +209,22 @@ func (s *models.Server) HandleChat(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(responseBody)
 }
 
+type ChatResponse struct {
+	Response string `json:"response"`
+}
+
+// ChatRequest represents the request body for the /chat endpoint.
+type ChatRequest struct {
+	Message        string `json:"message"`
+	ApiKey         string `json:"apiKey"`
+	ApiType        string `json:"apiType"`        // Add ApiType field
+	Model          string `json:"model"`          // Add Model field
+	OpenAIHostname string `json:"openaiHostname"` // Add OpenAIHostname field
+	OpenAIPath     string `json:"openaiPath"`     // Add OpenAIPath field
+}
+
 // HandleModels handles requests to the /models path
-func (s *models.Server) HandleModels(w http.ResponseWriter, r *http.Request) {
+func (s *Server) HandleModels(w http.ResponseWriter, r *http.Request) {
 	// Set CORS headers to allow requests from the frontend
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
@@ -206,7 +240,7 @@ func (s *models.Server) HandleModels(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var requestBody models.ChatRequest // Use ChatRequest to get API key, hostname, and path
+	var requestBody ChatRequest // Use ChatRequest to get API key, hostname, and path
 
 	err := json.NewDecoder(r.Body).Decode(&requestBody)
 	if err != nil {
@@ -235,9 +269,9 @@ func (s *models.Server) HandleModels(w http.ResponseWriter, r *http.Request) {
 	}
 	client := openai.NewClientWithConfig(config)
 
-	modelsList, err := client.ListModels(ctx) // Renamed variable to avoid conflict
-	if err != nil {
-		log.Println("Error listing OpenAI models:", err)
+	modelsList, errList := client.ListModels(ctx) // Renamed variable to avoid conflict
+	if errList != nil {
+	log.Println("Error listing OpenAI models:", errList)
 		http.Error(w, "Error listing OpenAI models", http.StatusInternalServerError)
 		return
 	}
@@ -247,10 +281,14 @@ func (s *models.Server) HandleModels(w http.ResponseWriter, r *http.Request) {
 		modelNames = append(modelNames, model.ID)
 	}
 
-	responseBody := models.ModelsResponse{
+	responseBody := ModelsResponse{
 		Models: modelNames,
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(responseBody)
+}
+
+type ModelsResponse struct {
+	Models []string `json:"models"`
 }

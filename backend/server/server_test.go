@@ -7,8 +7,6 @@ import (
 	"net/http/httptest"
 	"os"
 	"testing"
-
-	"ai-client-ui/backend/models" // Import the models package
 )
 
 func TestGetProxyFromEnv(t *testing.T) {
@@ -161,7 +159,7 @@ func TestHandleChat_InvalidMethod(t *testing.T) {
 
 func TestHandleChat_MissingApiKey(t *testing.T) {
 	server := NewServer()
-	requestBody := models.ChatRequest{
+	requestBody := ChatRequest{
 		ApiType: "Gemini",
 		Message: "Hello",
 		Model:   "gemini-1.5-flash-latest",
@@ -192,7 +190,7 @@ func TestHandleChat_MissingApiKey(t *testing.T) {
 
 func TestHandleChat_InvalidApiType(t *testing.T) {
 	server := NewServer()
-	requestBody := models.ChatRequest{
+	requestBody := ChatRequest{
 		ApiKey:         "fake-api-key",
 		ApiType:        "Invalid",
 		Message:        "Hello",
@@ -244,7 +242,7 @@ func TestHandleModels_InvalidMethod(t *testing.T) {
 
 func TestHandleModels_MissingApiKey(t *testing.T) {
 	server := NewServer()
-	requestBody := models.ChatRequest{ // Use ChatRequest for models endpoint
+	requestBody := ChatRequest{ // Use ChatRequest for models endpoint
 		OpenAIHostname: "api.openai.com", // Add hostname for testing
 		OpenAIPath:     "/v1",            // Add path for testing
 	}

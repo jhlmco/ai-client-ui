@@ -8,6 +8,7 @@ require (
 	github.com/google/generative-ai-go v0.19.0
 	github.com/sashabaranov/go-openai v1.39.0
 	google.golang.org/api v0.197.0
+	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (
